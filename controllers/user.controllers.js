@@ -12,20 +12,43 @@ const url = "mongodb://127.0.0.1:27017/";
 const mongoose = require("mongoose");
 const connection = require("../database/sqlDataBase");
 const mysql = require("mysql");
+const bcrypt = require("bcrypt");
 
 
 const user = {
     saveDataForm: (req, res) => {
-        let nombre = 'Javier';
-        let email = 'javier@gmail.com';
-        let urlImg = 'https://s0.wklcdn.com/image_45/1359708/photo.jpg?1614632131798';
-        let contrasena = 'Javier123*';
-        let about = 'Me encantan las motos';
-        let longitud = '42.32343435';
-        let latitud = '-5.32343435';
+        let nombre = req.body.nombre;
+        let email = req.body.email;
+        let urlImg = req.body.urlImg;
+        let contrasena = req.body.contrasena;
+        let about = req.body.about;
+        let longitud = req.body.longitud;
+        let latitud = req.body.latitud;
 
+        const nameExp = new RegExp(/^([A-Za-z]{1,15})$/);
+        const passExp = new RegExp(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%*?&])([A-Za-z\d$@$!%*?&]|[^ ]){8,15}$/
+        );
+        /**
+* Aqui comprobamos si los datos que introduce el usuario son correctos o no
+* si lo son se introducen en la base de datos, y si no lo son le indicamos a el usuario que son
+* incorrectos
+*/
+        if (
+            !nameExp.test(nombre) ||
+            !passExp.test(contrasena)
 
-        let insertQuery = `INSERT INTO Usuarios
+        ) {
+            console.log("campos incorrectos"); //renderizar una pagina de campos incorrectos
+        } else {
+            bcrypt.hash(contrasena, 10, (err, palabraSecretaEncriptada) => {
+                if (err) {
+                    console.log("Error hasheando:", err);
+                } else {
+                    console.log("Y hasheada es: " + palabraSecretaEncriptada);
+                    palabraEncriptada = palabraSecretaEncriptada;
+
+                    let insertQuery = `INSERT INTO Usuarios
        (
            nombre, email, urlImg ,contrasena, about, longitud, latitud
        )
@@ -34,44 +57,51 @@ const user = {
            ?, ?, ?, ?, ?, ?, ?
        )`;
 
-        let query = mysql.format(insertQuery, [
-            nombre,
-            email,
-            urlImg,
-            contrasena,
-            about,
-            longitud,
-            latitud
-        ]);
+                    let query = mysql.format(insertQuery, [
+                        nombre,
+                        email,
+                        urlImg,
+                        palabraEncriptada,
+                        about,
+                        longitud,
+                        latitud
+                    ]);
 
-        connection.query(query, (err, data) => {
-            if (err) throw err;
-            console.log(data);
+                    connection.query(query, (err, data) => {
+                        if (err) throw err;
+                        console.log(data);
 
-        });
+                    });
 
-        res.send("ok");
-    },
-    login: (req, res) => {
-        loginEmail = 'Javi';
-        passLog = 'Javier123*';
-
-        if (loginEmail == "admin@admin.com" && passLog == "Admin123*") {
-            res.render("admin");
+                    res.send("ok");
+                }
+            });
         }
+    },
 
+
+    login: (req, res) => {
+        
+        loginEmail = req.body.loginEmail;
+        passLog = req.body.passLog;
+
+        // if (loginEmail == "admin@admin.com" && passLog == "Admin123*") {
+        //     res.render("admin");
+        // }
+        console.log(loginEmail);
         let nameCorrect = `SELECT email,contrasena FROM Usuarios where email = '${loginEmail}'`;
 
         connection.query(nameCorrect, (err, rows) => {
             if (err) throw err;
 
             console.log('Usuario: \n', rows);
-            then(function (result) {
+            bcrypt.compare(passLog, rows[0].contrasena).then(function (result) {
+            
                 // result == true
                 if (result && rows[0].email == loginEmail) {
                     console.log("Usuario correcto");
                     let selectQuery = "SELECT * FROM ?? WHERE ?? = ?";
-                    
+
                     let query3 = mysql.format(selectQuery, [
                         "Usuarios",
                         "email",
@@ -83,10 +113,12 @@ const user = {
                         if (err) throw err;
                         console.log(data);
                         logNombre = data[0].nombre;
-                        logApellido = data[0].apellido;
-                        logDni = data[0].dni;
                         logEmail = data[0].email;
-                        logTelefono = data[0].telefono;
+                        logUrlImg = data[0].urlImg;
+                        logContrasena = data[0].contrasena;
+                        logAbout = data[0].about;
+                        logLong = data[0].longitud;
+                        logLat = data[0].latitud;
                     });
 
                 } else {
@@ -96,10 +128,11 @@ const user = {
             });
         })
         res.send("ok-Login");
+
     },
 
 
-    
+
 
 
 }
