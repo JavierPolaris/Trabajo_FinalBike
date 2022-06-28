@@ -38,50 +38,67 @@ const user = {
             !nameExp.test(nombre) ||
             !passExp.test(contrasena)
 
+
         ) {
             console.log("campos incorrectos"); //renderizar una pagina de campos incorrectos
         } else {
-            bcrypt.hash(contrasena, 10, (err, palabraSecretaEncriptada) => {
-                if (err) {
-                    console.log("Error hasheando:", err);
-                } else {
-                    console.log("Y hasheada es: " + palabraSecretaEncriptada);
-                    palabraEncriptada = palabraSecretaEncriptada;
+            let selectQuery = 'SELECT * FROM ?? WHERE ?? = ?';
+            let query3 = mysql.format(selectQuery, [
+                "Usuarios",
+                "email",
+                email,
+            ]);
+            console.log(email);
 
-                    let insertQuery = `INSERT INTO Usuarios
-       (
-           nombre, email, urlImg ,contrasena, about, longitud, latitud
-       )
-       VALUES
-       (
-           ?, ?, ?, ?, ?, ?, ?
-       )`;
+            if (connection) {
+                connection.query(query3, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        if (result.length > 0) {
+                            console.log("ya existe");
 
-                    let query = mysql.format(insertQuery, [
-                        nombre,
-                        email,
-                        urlImg,
-                        palabraEncriptada,
-                        about,
-                        longitud,
-                        latitud
-                    ]);
+                        } else {
+                            bcrypt.hash(contrasena, 10, (err, palabraSecretaEncriptada) => {
+                                if (err) {
+                                    console.log("Error hasheando:", err);
+                                } else {
+                                    console.log("Y hasheada es: " + palabraSecretaEncriptada);
+                                    palabraEncriptada = palabraSecretaEncriptada;
 
-                    connection.query(query, (err, data) => {
-                        if (err) throw err;
-                        console.log(data);
+                                    let query = "INSERT INTO Usuarios (nombre, email, contrasena, about, urlImg, longitud, latitud) VALUES (?,?,?,?,?,?,?)";
+                                    let query2 = mysql.format(query, [
+                                        nombre,
+                                        email,
+                                        palabraEncriptada,
+                                        about,
+                                        urlImg,
+                                        longitud,
+                                        latitud
+                                    ]);
+                                    connection.query(query2, (err, result) => {
+                                        if (err) {
+                                            console.log(err);
+                                        } else {
+                                            console.log("insertado");
 
-                    });
-
-                    res.send("ok");
+                                        }
+                                    }
+                                    );
+                                }
+                            })
+                        }
+                    }
                 }
-            });
+                );
+            }
         }
     },
 
 
+
     login: (req, res) => {
-        
+
         loginEmail = req.body.loginEmail;
         passLog = req.body.passLog;
 
@@ -96,8 +113,7 @@ const user = {
 
             console.log('Usuario: \n', rows);
             bcrypt.compare(passLog, rows[0].contrasena).then(function (result) {
-            
-                // result == true
+
                 if (result && rows[0].email == loginEmail) {
                     console.log("Usuario correcto");
                     let selectQuery = "SELECT * FROM ?? WHERE ?? = ?";
