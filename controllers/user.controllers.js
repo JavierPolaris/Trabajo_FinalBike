@@ -13,6 +13,11 @@ const mongoose = require("mongoose");
 const connection = require("../database/sqlDataBase");
 const mysql = require("mysql");
 const bcrypt = require("bcrypt");
+const fs = require('fs');
+
+
+const json_rutas = fs.readFileSync('ruta.json');
+let rutas = JSON.parse(json_rutas);
 
 
 const user = {
@@ -40,8 +45,9 @@ const user = {
 
 
         ) {
-            console.log("campos incorrectos"); //renderizar una pagina de campos incorrectos
+            console.log("campos incorrectos"); 
         } else {
+            // Aqui introducimos los datos en la base de datos
             let selectQuery = 'SELECT * FROM ?? WHERE ?? = ?';
             let query3 = mysql.format(selectQuery, [
                 "Usuarios",
@@ -49,7 +55,7 @@ const user = {
                 email,
             ]);
             console.log(email);
-
+            // Aqui comprobamos si el email ya existe en la base de datos
             if (connection) {
                 connection.query(query3, (err, result) => {
                     if (err) {
@@ -59,13 +65,15 @@ const user = {
                             console.log("ya existe");
 
                         } else {
+                            
                             bcrypt.hash(contrasena, 10, (err, palabraSecretaEncriptada) => {
-                                if (err) {
+                                if (err) {  
                                     console.log("Error hasheando:", err);
                                 } else {
+                                   
                                     console.log("Y hasheada es: " + palabraSecretaEncriptada);
                                     palabraEncriptada = palabraSecretaEncriptada;
-
+                                    // Aqui introducimos los datos en la base de datos cuando no existe el email
                                     let query = "INSERT INTO Usuarios (nombre, email, contrasena, about, urlImg, longitud, latitud) VALUES (?,?,?,?,?,?,?)";
                                     let query2 = mysql.format(query, [
                                         nombre,
@@ -98,7 +106,7 @@ const user = {
 
 
     login: (req, res) => {
-
+    
         loginEmail = req.body.loginEmail;
         passLog = req.body.passLog;
 
@@ -106,14 +114,15 @@ const user = {
         //     res.render("admin");
         // }
         console.log(loginEmail);
+        
         let nameCorrect = `SELECT email,contrasena FROM Usuarios where email = '${loginEmail}'`;
-
+        // Aqui comprobamos si el email existe en la base de datos
         connection.query(nameCorrect, (err, rows) => {
             if (err) throw err;
 
             console.log('Usuario: \n', rows);
             bcrypt.compare(passLog, rows[0].contrasena).then(function (result) {
-
+            
                 if (result && rows[0].email == loginEmail) {
                     console.log("Usuario correcto");
                     let selectQuery = "SELECT * FROM ?? WHERE ?? = ?";
@@ -146,6 +155,25 @@ const user = {
         res.send("ok-Login");
 
     },
+
+    regRute: (req, res) => {
+        //Aqui me traigo del front las posiciones de la ruta
+
+        var posiciones = req.body.posiciones;
+
+        console.log(posiciones);
+
+        //Aqui añado la ruta al array de rutas
+
+        rutas.push(posiciones);
+
+        //Aqui guardo el array de rutas en un json
+
+        let json_rutas = JSON.stringify(rutas);
+        fs.writeFileSync('ruta.json', json_rutas);
+
+
+    }   
 
 
 
